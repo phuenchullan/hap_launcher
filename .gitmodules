@@ -1,3 +1,6 @@
 [submodule "ha-gateway"]
 	path = ha-gateway
 	url = git@github.com:phuenchullan/ha-gateway.git
+[submodule "ha-harvest-ms"]
+	path = ha-harvest-ms
+	url = git@github.com:phuenchullan/ha-harvest-ms.git
