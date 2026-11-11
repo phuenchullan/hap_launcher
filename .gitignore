@@ -1,0 +1,6 @@
+.env
+data/
+nginx/certs/*.pem
+nginx/certs/*.key
+nginx/certs/*.crt
+*.log

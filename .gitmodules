@@ -7,3 +7,9 @@
 [submodule "hap-files"]
 	path = hap-files
 	url = git@github.com:phuenchullan/hap-files.git
+[submodule "dashboard-hap"]
+	path = dashboard-hap
+	url = git@github.com:phuenchullan/hap-dashboard.git
+[submodule "hap-dashboard"]
+	path = hap-dashboard
+	url = git@github.com:phuenchullan/hap-dashboard.git

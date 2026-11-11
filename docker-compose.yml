@@ -1,16 +1,49 @@
 services:
-  postgres:
-    image: postgres:16-alpine
+  gateway-db:
+    image: postgres:18-alpine
     restart: unless-stopped
     environment:
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DB: postgres
+      POSTGRES_USER: ${DB_GATEWAY_USER}
+      POSTGRES_PASSWORD: ${DB_GATEWAY_PASSWORD}
+      POSTGRES_DB: ${DB_GATEWAY_NAME}
     volumes:
-      - postgres_data:/var/lib/postgresql/data
-      - ./deploy/postgres/init.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
+      - ./data/gateway:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
+      test: ["CMD-SHELL", "pg_isready -U ${DB_GATEWAY_USER} -d ${DB_GATEWAY_NAME}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - hap
+
+  harvest-db:
+    image: postgres:18-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${DB_HARVEST_USER}
+      POSTGRES_PASSWORD: ${DB_HARVEST_PASSWORD}
+      POSTGRES_DB: ${DB_HARVEST_NAME}
+    volumes:
+      - ./data/harvest:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_HARVEST_USER} -d ${DB_HARVEST_NAME}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - hap
+
+  hap-files-db:
+    image: postgres:18-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${HAP_FILES_DB_USER}
+      POSTGRES_PASSWORD: ${HAP_FILES_DB_PASSWORD}
+      POSTGRES_DB: ${HAP_FILES_DB_NAME}
+    volumes:
+      - ./data/hap-files:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${HAP_FILES_DB_USER} -d ${HAP_FILES_DB_NAME}"]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -26,7 +59,7 @@ services:
 
   hap-files:
     build:
-      context: ../hap-files
+      context: ./hap-files
     image: hap-files:latest
     restart: unless-stopped
     environment:
@@ -35,16 +68,16 @@ services:
       BIND_ADDRESS: ${BIND_ADDRESS}
       IMAGES_DIR: ${IMAGES_DIR}
     volumes:
-      - hap_files_images:/data/images
+      - ./data/images:/data/images
     depends_on:
-      postgres:
+      hap-files-db:
         condition: service_healthy
     networks:
       - hap
 
   ha-harvest-ms:
     build:
-      context: ../ha-harvest-ms
+      context: ./ha-harvest-ms
     image: ha-harvest-ms:latest
     restart: unless-stopped
     environment:
@@ -52,7 +85,7 @@ services:
       HARVEST_DATABASE_URL: ${HARVEST_DATABASE_URL}
       NATS_SERVERS: ${NATS_SERVERS}
     depends_on:
-      postgres:
+      harvest-db:
         condition: service_healthy
       nats:
         condition: service_started
@@ -61,7 +94,7 @@ services:
 
   ha-gateway:
     build:
-      context: ../ha-gateway
+      context: ./ha-gateway
     image: ha-gateway:latest
     restart: unless-stopped
     environment:
@@ -73,7 +106,7 @@ services:
       HAP_FILES_URL: ${HAP_FILES_URL}
       HAP_API_KEY: ${HAP_API_KEY}
     depends_on:
-      postgres:
+      gateway-db:
         condition: service_healthy
       nats:
         condition: service_started
@@ -86,7 +119,7 @@ services:
 
   dashboard:
     build:
-      context: ../dashboard-hap
+      context: ./dashboard-hap
     image: hap-dashboard:latest
     restart: unless-stopped
     networks:
@@ -108,10 +141,6 @@ services:
       - hap-files
     networks:
       - hap
-
-volumes:
-  postgres_data:
-  hap_files_images:
 
 networks:
   hap:
