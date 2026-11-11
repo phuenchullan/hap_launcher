@@ -1,0 +1,3 @@
+[submodule "ha-gateway"]
+	path = ha-gateway
+	url = git@github.com:phuenchullan/ha-gateway.git
