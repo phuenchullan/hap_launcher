@@ -4,3 +4,6 @@
 [submodule "ha-harvest-ms"]
 	path = ha-harvest-ms
 	url = git@github.com:phuenchullan/ha-harvest-ms.git
+[submodule "hap-files"]
+	path = hap-files
+	url = git@github.com:phuenchullan/hap-files.git
