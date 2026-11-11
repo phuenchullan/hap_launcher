@@ -7,7 +7,7 @@ services:
       POSTGRES_PASSWORD: ${DB_GATEWAY_PASSWORD}
       POSTGRES_DB: ${DB_GATEWAY_NAME}
     volumes:
-      - ./data/gateway:/var/lib/postgresql/data
+      - ./data/gateway:/var/lib/postgresql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${DB_GATEWAY_USER} -d ${DB_GATEWAY_NAME}"]
       interval: 5s
@@ -24,7 +24,7 @@ services:
       POSTGRES_PASSWORD: ${DB_HARVEST_PASSWORD}
       POSTGRES_DB: ${DB_HARVEST_NAME}
     volumes:
-      - ./data/harvest:/var/lib/postgresql/data
+      - ./data/harvest:/var/lib/postgresql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${DB_HARVEST_USER} -d ${DB_HARVEST_NAME}"]
       interval: 5s
@@ -41,7 +41,7 @@ services:
       POSTGRES_PASSWORD: ${HAP_FILES_DB_PASSWORD}
       POSTGRES_DB: ${HAP_FILES_DB_NAME}
     volumes:
-      - ./data/hap-files:/var/lib/postgresql/data
+      - ./data/hap-files:/var/lib/postgresql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${HAP_FILES_DB_USER} -d ${HAP_FILES_DB_NAME}"]
       interval: 5s
@@ -62,8 +62,10 @@ services:
       context: ./hap-files
     image: hap-files:latest
     restart: unless-stopped
+    env_file:
+      - .env
     environment:
-      HAP_FILES_DATABASE_URL: ${HAP_FILES_DATABASE_URL}
+      HAP_FILES_DATABASE_URL: postgres://${HAP_FILES_DB_USER}:${HAP_FILES_DB_PASSWORD}@hap-files-db:5432/${HAP_FILES_DB_NAME}
       HAP_API_KEY: ${HAP_API_KEY}
       BIND_ADDRESS: ${BIND_ADDRESS}
       IMAGES_DIR: ${IMAGES_DIR}
@@ -80,9 +82,14 @@ services:
       context: ./ha-harvest-ms
     image: ha-harvest-ms:latest
     restart: unless-stopped
+    env_file:
+      - .env
     environment:
       DB_HARVEST_PORT: ${DB_HARVEST_PORT}
-      HARVEST_DATABASE_URL: ${HARVEST_DATABASE_URL}
+      DB_HARVEST_USER: ${DB_HARVEST_USER}
+      DB_HARVEST_PASSWORD: ${DB_HARVEST_PASSWORD}
+      DB_HARVEST_NAME: ${DB_HARVEST_NAME}
+      HARVEST_DATABASE_URL: postgresql://${DB_HARVEST_USER}:${DB_HARVEST_PASSWORD}@harvest-db:5432/${DB_HARVEST_NAME}
       NATS_SERVERS: ${NATS_SERVERS}
     depends_on:
       harvest-db:
@@ -97,9 +104,14 @@ services:
       context: ./ha-gateway
     image: ha-gateway:latest
     restart: unless-stopped
+    env_file:
+      - .env
     environment:
       GATEWAY_PORT: ${GATEWAY_PORT}
-      DATABASE_URL: ${DATABASE_URL}
+      DB_GATEWAY_USER: ${DB_GATEWAY_USER}
+      DB_GATEWAY_PASSWORD: ${DB_GATEWAY_PASSWORD}
+      DB_GATEWAY_NAME: ${DB_GATEWAY_NAME}
+      DATABASE_URL: postgresql://${DB_GATEWAY_USER}:${DB_GATEWAY_PASSWORD}@gateway-db:5432/${DB_GATEWAY_NAME}
       JWT_SECRET: ${JWT_SECRET}
       JWT_EXPIRES_IN: ${JWT_EXPIRES_IN}
       NATS_SERVERS: ${NATS_SERVERS}
@@ -119,7 +131,7 @@ services:
 
   dashboard:
     build:
-      context: ./dashboard-hap
+      context: ./hap-dashboard
     image: hap-dashboard:latest
     restart: unless-stopped
     networks:
