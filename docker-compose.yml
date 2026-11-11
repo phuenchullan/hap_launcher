@@ -7,7 +7,7 @@ services:
       POSTGRES_PASSWORD: ${DB_GATEWAY_PASSWORD}
       POSTGRES_DB: ${DB_GATEWAY_NAME}
     volumes:
-      - ./data/gateway:/var/lib/postgresql
+      - ./data/ha-gateway:/var/lib/postgresql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${DB_GATEWAY_USER} -d ${DB_GATEWAY_NAME}"]
       interval: 5s
@@ -24,7 +24,7 @@ services:
       POSTGRES_PASSWORD: ${DB_HARVEST_PASSWORD}
       POSTGRES_DB: ${DB_HARVEST_NAME}
     volumes:
-      - ./data/harvest:/var/lib/postgresql
+      - ./data/ha-harvest-ms:/var/lib/postgresql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${DB_HARVEST_USER} -d ${DB_HARVEST_NAME}"]
       interval: 5s

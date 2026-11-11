@@ -14,8 +14,8 @@ docker compose up -d
 
 Los datos de Postgres y las fotos AVIF quedan en disco local:
 
-- `data/gateway` — base del gateway
-- `data/harvest` — base de harvest-ms
+- `data/ha-gateway` — base del gateway
+- `data/ha-harvest-ms` — base de harvest-ms
 - `data/hap-files` — base de hap-files
 - `data/images` — archivos AVIF
 
