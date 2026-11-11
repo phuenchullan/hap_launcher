@@ -1,0 +1,118 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: postgres
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./deploy/postgres/init.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - hap
+
+  nats:
+    image: nats:2.10-alpine
+    restart: unless-stopped
+    command: ["-js"]
+    networks:
+      - hap
+
+  hap-files:
+    build:
+      context: ../hap-files
+    image: hap-files:latest
+    restart: unless-stopped
+    environment:
+      HAP_FILES_DATABASE_URL: ${HAP_FILES_DATABASE_URL}
+      HAP_API_KEY: ${HAP_API_KEY}
+      BIND_ADDRESS: ${BIND_ADDRESS}
+      IMAGES_DIR: ${IMAGES_DIR}
+    volumes:
+      - hap_files_images:/data/images
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - hap
+
+  ha-harvest-ms:
+    build:
+      context: ../ha-harvest-ms
+    image: ha-harvest-ms:latest
+    restart: unless-stopped
+    environment:
+      DB_HARVEST_PORT: ${DB_HARVEST_PORT}
+      HARVEST_DATABASE_URL: ${HARVEST_DATABASE_URL}
+      NATS_SERVERS: ${NATS_SERVERS}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      nats:
+        condition: service_started
+    networks:
+      - hap
+
+  ha-gateway:
+    build:
+      context: ../ha-gateway
+    image: ha-gateway:latest
+    restart: unless-stopped
+    environment:
+      GATEWAY_PORT: ${GATEWAY_PORT}
+      DATABASE_URL: ${DATABASE_URL}
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN}
+      NATS_SERVERS: ${NATS_SERVERS}
+      HAP_FILES_URL: ${HAP_FILES_URL}
+      HAP_API_KEY: ${HAP_API_KEY}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      nats:
+        condition: service_started
+      hap-files:
+        condition: service_started
+      ha-harvest-ms:
+        condition: service_started
+    networks:
+      - hap
+
+  dashboard:
+    build:
+      context: ../dashboard-hap
+    image: hap-dashboard:latest
+    restart: unless-stopped
+    networks:
+      - hap
+
+  nginx:
+    build:
+      context: ./nginx
+    image: hap-nginx:latest
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/certs:/etc/nginx/certs:ro
+    depends_on:
+      - dashboard
+      - ha-gateway
+      - hap-files
+    networks:
+      - hap
+
+volumes:
+  postgres_data:
+  hap_files_images:
+
+networks:
+  hap:
+    driver: bridge
